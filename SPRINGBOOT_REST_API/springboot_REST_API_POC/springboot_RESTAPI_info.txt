@@ -1,0 +1,686 @@
+SPRINGBOOT - REST API  - DETAILS
+-------------------------------------
+
+github reference in28 = https://github.com/in28minutes/spring-microservices-v2/tree/main/02.restful-web-services
+
+Note = Springboot feature of autoconfiguration and spring starter files helps with DispatcherServet and also Tomcat , IOC etc are autoconfigured in springboot.
+(ErrorMVCAutoConfiguartion)
+spring,springMVC, Jackson,Tomcat all jars are present in Spring Starter web dependency. Strater projects bring all the dependency
+
+==================================================================================================================================================================================
+
+Request Methods for REST API
+-------------------------------
+1)GET = Retrive details of a Resource
+2)POST = Create a new resource
+3)PUT = Update an existing resource
+3)PATCH = Update part of a resource
+4)DELETE = Delete a resource
+
+===================================================================================================================================================================================
+
+==>> REST api end point testing can be done with the help of Postman application , Talend API Tester (accessible from the browser)
+
+==============================================================================================================================================================================================
+Response status for REST API
+--------------------------------
+
+200=success
+201=Created (when trigger a POST request for adding data and return the success status 201)
+204=No content(when trigger a PATHCh request for updating a part of the content and if it is not present then return 204)
+401=UnAuthorize (when authorization fails)
+400=Bad Request (such as validation error)
+404=Resource Not Found
+500=Server Error/Server Exception
+
+
+STEPS :-
+-------
+
+1)
+-->>create a springboot project via spring initializer
+start.spring.io
+
+-->>> add dependency
+spring web , dev tools , H2 DB , Spring Data JPA
+
+2)
+-->>> in order to check the log 
+application.properties
+logging.level.org.springframework=debug
+
+
+=====================================================================================================================================
+
+>>Rest api with returing a String value
+>>Rest api end point returning a Bean/Class onject
+>>Rest api end point returning a Bean and accepting a Path Variable on the uRL
+
+======================================================================================================================================
+SOCIAL MEDIA APPLICATION
+------------------------------
+-->>>Key Resources are Users and Post
+-->>>Key Details -
+User : id , name , birthDate
+Post : id , description
+
+
+
+
+REST API END POINTS
+--------------------------
+
+Users REST API
+-------------------
+1)Retrive all users
+  GET /users
+
+2)Retrive specific user / one user
+   GET /users/{id} 
+
+3)Create User
+  POST /users
+
+4)Delete User
+   DELETE /users/{id}
+
+
+POSTS REST API
+------------------------
+
+1)Retrive all POST for a user
+   GET /users/{id}/posts
+
+2)Create a POST for the user
+   POST /users/{id}/posts
+
+3)Retrive details of a pOST
+  GET /users/{id}/posts/{post_id}
+
+  
+============================================================================================================================================================
+==============================================
+
+Approch 1 - Building REST API without using DB - Creating a static list and static block
+
+-->> Creating a User bean
+--->> service class , create a static list with static block for initializing a List as we are not using the DB
+
+==>>Enhence the POST request with the correct Http status code and location
+//POST - create/add a resource - and return the response code using ResponseEntity
+	@PostMapping("/users")
+	public ResponseEntity<User> saveUser2(@RequestBody User user){
+		User savedData = service.save(user);	
+		URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+				       .path("{id}")
+				       .buildAndExpand(savedData.getId()) //it will replace the pathvariable id with the saved data id
+				       .toUri();
+		
+		return ResponseEntity.created(location).build();
+	}
+
+
+=======================================================================================================================================================================================================
+
+GLOBAL EXCEPTIONAL HANDLING
+---------------------------------
+
+1)Create a error response class
+-->> timestamp , message ,details
+>> generate getters(),setters(),parameterized constructor , default constructor
+
+2)Create a user defined exception class by extending RuntimeException
+
+3)Create a global exception handler class by extending ResponseEntityExceptionalHandler class
+-->> using @ControllerAdvice 
+-->> @ExceptionHandler block will contains the ResponseEntity which returs the error object to the client side
+
+
+==========================================================================================================================================================================================================
+
+Implementing VALIDATION FOR REST API
+-----------------------------------------
+
+1) Add pox.xml dependency for stater-validation
+
+	<!-- Dependency for satter validation -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+2)Add @Valid annotation on controller end point
+
+	For example
+	@PostMapping("/users")
+	public ResponseEntity<User> saveUser2(@Valid @RequestBody User user){
+	...
+	}
+
+3)Add validation related annotaion along with message on Entity class member
+
+	@Size(min = 2 , message = "Name should contain 2 charecters")
+	private String name;
+	
+	@Past(message = "Birth date should be in past")
+	private LocalDate birthDate;
+
+
+4) 
+-->>>In order to handle exception for validation , we need to override one method (handleMethodArgumentNotValid) on the global exception handling class( need to pplace this code where @ControllerAdvice annotaion is present)
+
+	//handling exception handling for validation
+	@Override
+	protected ResponseEntity<Object> handleMethodArgumentNotValid(
+			MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+
+		
+		ErrorDetails errors = new ErrorDetails(LocalDateTime.now(),ex.getFieldError().getDefaultMessage(),request.getDescription(false));
+		
+		return new ResponseEntity(errors , HttpStatus.BAD_REQUEST);
+	
+	}
+
+
+==================================================================================================================================================================================================================
+
+REST API Documentation (Swagger and Openapi)
+-------------------------------------------------
+
+-->>>Open API Specification
+>>Discover and understand REST API
+>>earlier known as swagger specification
+
+-->>>Swagger UI
+>>Visualize and interract with your REST API
+
+
+STEPS FOR Swagger Implemntation for REST API
+-------------------------------------------------
+
+1)
+-->>> Add openapi dependency
+
+>>>Google search >> springdoc openapi >> open both springdoc and github page
+https://springdoc.org/
+https://github.com/springdoc/springdoc-openapi
+
+dependency
+-------------
+OLD dependency
+------------------
+<dependency>
+	<groupId>org.springdoc</groupId>
+	<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+	<version>2.0.0</version>
+</dependency>
+
+New Dependency (can get that dependency from the https://springdoc.org/)
+
+<dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-ui</artifactId>
+      <version>1.6.14</version>
+   </dependency>
+
+2)
+--->>> Check the Swagger-ui url on the browser
+hhtp://localhost:8080/swagger-ui.html
+
+
+
+
+==============================================================================================================================================================================================
+
+CONTENT NEGOTIATION
+----------------------------
+
+-->>>same URI / resource can have different representation is called as Content negotiation
+
+-->>> URI / resource means - URL (example - http://localhost:8080/users)
+
+-->>Different Content-type = XML or JSON 
+Accept Header - MIME types - application/json , application/xml 
+[returns response in XML or JSOn asper the header type]
+
+-->>Different language = English , Dutch , French
+Accept Header Language - en , nl , fr ....
+
+>>> in order to get the output/response in different format i.e. JSON/XML , we need to add only one dependency on pom.xml file and thats it
+
+<dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-xml</artifactId>
+</dependency>
+
+
+*****
+Note:= For testing the content negotiation we would need to comment out the dependency for swagger-ui
+-->>> on Client end/postman/TalendAPI Tester , need to add header - content >> value - application/xml(if need XML response) OR value - application/json(if need JSON response)
+
+
+INTERNATIONALIZATION - i18n
+-----------------------------
+-->>> INTERNATIONALIZATION(i18n) is also called as i118n
+
+-->>>i18n , when we would need response of the api in different language 
+
+en(english) 
+nl(dutch) 
+fr(french) 
+de(Deutsch)
+
+Steps -
+-------
+
+1)Add dependency (same dependency like Different content-Type)
+
+<dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-xml</artifactId>
+</dependency>
+
+2)Create a API End Point
+
+3)create a messages.properties file on src/main/resources folder
+
+-->>need to create seperate messages.properties file for different languages
+example - 
+messages.properties
+messages_nl.properties
+
+4)
+
+-->>inject/autowire/constructor injection -  MessageSource interface - on controller page
+
+File - Controller.java
+-----------------------
+
+//MessageSource autowire or constructor injection is required for invoking messages.properties files - i18n
+	private MessageSource messageSource;
+	
+	public HelloWorldController(MessageSource messageSource){
+		this.messageSource = messageSource;
+
+//api end point for i18n - response in different language
+	@GetMapping("/hello-world-i18n")
+	public String showMessage()
+	{
+		Locale locale = LocaleContextHolder.getLocale();
+		return messageSource.getMessage("good.morning.message", null, "defaultMessage", locale );
+		
+		//return "Hello World!!!! i18n";
+	}
+
+5) In case of deifferent language -
+
+-->> Clientend/Postman/Talend API Tester  >> Header - Accept-Language >> nl
+
+Note - create a seperate messages_nl.properties file for dutch language etc
+
+=============================================================================================================================================================================================
+
+VERTIONING - REST API
+----------------------
+
+1. URI Vertioning
+-------------------
+
+URI Versioning
+
+V1: http://localhost:8080/v1/person
+
+@GetMapping("/v1/person")
+
+V2: http://localhost:8080/v2/person
+
+@GetMapping("/v2/person")
+
+------------------------------------------------------------------------------------------------------------
+
+2. Request Param Versioning
+------------------------------
+
+V1: http://localhost:8080/person?version=1
+
+@GetMapping(path = "/person", params = "version=1")
+
+V2: http://localhost:8080/person?version=2
+
+@GetMapping(path = "/person", params = "version=2")
+
+--------------------------------------------------------------------------------------------------------------
+
+3. Header Versioning
+---------------------
+
+V1: http://localhost:8080/person/header
+
+HEADER - X-API-VERSION:1
+
+@GetMapping(path = "/person/header", headers = "X-API-VERSION=1")
+
+V2: http://localhost:8080/person/header
+
+HEADER - X-API-VERSION:2
+
+@GetMapping(path = "/person/header", headers = "X-API-VERSION=2")
+
+----------------------------------------------------------------------------------------------------------------
+
+4.Content Negotiation Versioning
+--------------------------------------
+
+V1: http://localhost:8080/person/accept
+
+HEADER - Accept:application/vnd.company.app-v1+json
+
+@GetMapping(path = "/person/accept", produces = "application/vnd.company.app-v1+json")
+
+V2: http://localhost:8080/person/accept
+
+HEADER - Accept:application/vnd.company.app-v1+json
+
+@GetMapping(path = "/person/accept", produces = "application/vnd.company.app-v2+json")
+
+
+====================================================================================================================================================================================================================
+
+CUSTOMIZING REST API RESPONSES - FILTERING
+------------------------------------------- 
+
+Serialization = Convert object to Stream (example - JSON)
+-->>> Most popular JSON serialization in JAVA is Jackson
+
+1)
+
+==>>Customize field name in Rest API Response
+@JsonProperty
+
+Example - File - User.class
+----------------------------
+
+	@JsonProperty("user_name") //@JsonPropery annotation for customize REST API Response , json response will contain user_name instead of name
+	private String name;
+	
+	@Past(message = "Birth date should be in past")
+	@JsonProperty("birth_date") //JSOn response will have birth_date as response instead of birth_date
+	private LocalDate birthDate;
+
+REST API - Output Response
+---------------------------
+[
+{
+"id": 1,
+"user_name": "Riya Biswas",
+"birth_date": "1994-03-24"
+},
+]
+
+
+2)
+
+==>>Return only selected fields
+*Filtering
+Example - filter out password (meaning Password field will be hidden/filter out from the response)
+
+==>>Two types of filtering
+
+>>Satic Filtering
+------------------
+Same filtering for a bean across different REST API
+@JsonIgnoreProperties , @JsonIgnore
+
+where - @JsonIgnoreProperties (class level), @JsonIgnore(field level)
+
+->>meaning same REST API response bean for the different REST API
+
+Example-
+File - SomeBean.java
+--------------------
+//@JsonIgnoreProperties({"field2","field3"}) //ignore/filter the property in class level
+public class SomeBean {
+	
+	private String field1;
+	
+	//ignore/filter property in field level
+	@JsonIgnore 
+	private String field2;
+	
+	private String field3;
+
+	//parameterized constructor
+	//getters and setters
+}
+
+>>Dynamic Filtering
+---------------------
+Customize filtering for a bean for specfic REST API
+@JsonFilter with FilterProvider
+
+Example-
+say this bean name is Person.java
+
+{
+	"field1": "value1",
+	"field2": "value2",
+	"field3": "value3"
+}
+
+->>one REST API end point will return the response for the bean Person as below format
+{
+	"field1": "value1",
+	"field3": "value3"
+}
+
+->>on the other hand different API would want the response for the Person bean as the below format
+{
+	"field1": "value1",
+	"field2": "value2",
+}
+
+In such case dynamic filter will work.
+
+
+===================================================================================================================================================================================================
+
+Connecting REST API to H2(In-Memory DB) using JPA and Hibernate
+----------------------------------------------------------------
+
+==>>> H2 Console - In-Memory DB
+
+
+Steps -
+------
+1)Add H2 database dependency
+
+2)Enabled H2-Console and other properties- edit appilication.properties file
+
+/src/main/resources/application.properties
+
+spring.h2.console.enabled=true
+spring.datasource.url=jdbc:h2:mem:testDB
+spring.jpa.defer-datasource-initialization=true
+spring.jpa.show-sql=true
+
+3)Access the H2-console
+>>on browser
+http://localhost:8080/h2-console
+
+
+4)
+=>>> For JPA implementation, 
+>> Add Spring JPA Dependency
+>> Create a Entity class
+>>Create a Repository interface that extends JpaRepository<UserDetails,Integer>
+public interface UserDetailsJpaRepository extends JpaRepository<UserDetails, Integer>{
+
+}
+
+5)Create a data.sql under resources folder for inserting data into H2 DB tables
+location - src/main/resources/data.sql
+
+
+
+=====================================================================================================================================================================================
+
+Connecting REST API to MySql DB - using DOCKER Container
+**********************************************************
+----------------------------------------------------------
+
+1)
+
+Launch MySQL as Docker Container
+---------------------------------
+open CMD >> run the below docker command for running the docker container
+
+docker run --detach --env MYSQL_ROOT_PASSWORD=dummypassword --env MYSQL_USER=social-media-user --env MYSQL_PASSWORD=dummypassword --env MYSQL_DATABASE=social-media-database --name mysql --publish 3306:3306 mysql:8-oracle
+
+Note-
+
+docker run --detach 
+--env MYSQL_ROOT_PASSWORD=dummypassword 
+--env MYSQL_USER=social-media-user 
+--env MYSQL_PASSWORD=dummypassword 
+--env MYSQL_DATABASE=social-media-database 
+--name mysql  (container name)
+--publish 3306:3306 
+mysql:8-oracle (image name - which supports all the OS i..e. MAC , Windows , Linux)
+
+2)Add mysql maven dependency on pom.xml file
+
+<dependency>
+	<groupId>mysql</groupId>
+	<artifactId>mysql-connector-java</artifactId>
+</dependency> 
+
+3)Upadate application.properties file
+/src/main/resources/application.properties
+
+#spring.datasource.url=jdbc:h2:mem:testdb
+spring.jpa.show-sql=true
+spring.datasource.url=jdbc:mysql://localhost:3306/social-media-database
+spring.datasource.username=social-media-user
+spring.datasource.password=dummypassword
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+
+4)use MySql client for accessing/viewing the DB or tables
+
+>>google search >> mysqlsh - MySql shell
+>>Download and Install
+https://dev.mysql.com/doc/mysql-shell/8.0/en/mysqlsh.html
+
+>>CMD - run the below commands for accesing MySql shell for MySql DB tables
+
+mysqlsh commands 
+-----------------
+
+mysqlsh
+\connect social-media-user@localhost:3306
+\sql
+use social-media-database
+select * from user_details;
+select * from post;
+\quit
+
+
+===========================================================================================================================================================================================
+
+Implementing basic Authentication - Spring Security
+*****************************************************
+-----------------------------------------------------
+
+==>>> Spring security will provide the basic login page and applies for all api end points
+==>> for basic authentication , means only after adding spring-security dependency , a login page will be enabled and can be shown after triggering any API End Points and also a default generated password will be generated after run the application on console
+>>every time a new password will be generated for every run the application
+
+==>> in oreder to get the staic username and password , application.properties file need to be updated with few statements
+
+Steps:-
+--------
+********
+
+1) Add dependency for spring security
+
+<!-- Spring security -->
+	<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+	</dependency>
+
+
+2) update application.properties file for default/static spring security username and password
+
+src/main/resources/application.properties
+#
+#spring-security static username and password
+spring.security.user.name=username
+spring.security.user.password=password
+
+
+==>> after applying the baisc spring security authentication , it will provide a default login page for all api endpoints
+
+==>>For Testing, on client tool like Postman or Talend API Tester , we need to add authorization header (a popup will come up for Talend API Tester)
+Header : Authorization : username and Password 
+
+Note : But for POST or PUT request , after implemnting Spring Security, POST/PUT request will not work and it gives 403 error
+in order to over come that error we would need to add some configuration for the same
+
+Basically , we we hit the api endpoint after implemnting the Spring-Security it intercepts the request and it follows filter chain
+
+
+Spring Security
+----------------
+
+Filer Chains
+
+1)All request should be authenticated -- that is why a login page will come up
+2)If a request is not authenticated a webpage/login page will come up -- it means if a request/API EndPoint is not authenticated then it will redirect to the login page
+3)CSRF -> POST , PUT -- CSRF effects the POST and PUT request and due to which POST/PUT request is not accessible and it gives 403 forbidden error
+(disable CSRF)
+
+Solution - For 403 forbidden error - For POST/PUT request
+---------------------------------------------------------
+Configuration ->> Bean(override the Filter Chain configuration for Spring security)
+
+***Finding a class in eclipse - ctrl + Shift + T
+
+File - SpringSecurityconfiguration.java
+-----------------------------------------
+
+package com.springboot.rest.webservice.restfulwebservice.security;
+
+import static org.springframework.security.config.Customizer.withDefaults;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+public class SpringSecurityConfiguration {
+	
+	//override the Spring-security Filter Chain
+	@Bean
+	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+		
+//		1)All request should be authenticated -- that is why a login page will come up
+		http.authorizeHttpRequests(
+				auth -> auth.anyRequest().authenticated()
+				);
+		
+//		2)If a request is not authenticated a webpage/login page will come up -- it means if a request/API EndPoint is not authenticated then it will redirect to the login page
+		http.httpBasic(withDefaults());
+		
+//		3)CSRF -> POST , PUT -- CSRF effects the POST and PUT request and due to which POST/PUT request is not accessible and it gives 403 forbidden error
+//		(disable CSRF)
+		http.csrf().disable();
+		return http.build();
+	}
+
+}
+
+
+
+
+
